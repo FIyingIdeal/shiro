@@ -151,10 +151,13 @@ public class DefaultSessionManager extends AbstractValidatingSessionManager impl
     }
 
     protected Session doCreateSession(SessionContext context) {
+        // 调用SessionFactory#createSession(SessionContext)方法创建一个新的Session对象
+        // SessionFactory只用一个默认实现SimpleSessionFactory
         Session s = newSessionInstance(context);
         if (log.isTraceEnabled()) {
             log.trace("Creating session for host {}", s.getHost());
         }
+        // 这个方法用来缓存Session的，缓存前会生成一个SessionId
         create(s);
         return s;
     }
@@ -169,11 +172,15 @@ public class DefaultSessionManager extends AbstractValidatingSessionManager impl
      * <code>this.{@link SessionDAO sessionDAO}.{@link SessionDAO#create(org.apache.shiro.session.Session) create}(session);<code>
      *
      * @param session the Session instance to persist to the underlying EIS.
+     *
+     * 调用{@link SessionDAO#create(Session)}将Session保存到EIS中，而从{@link SessionDAO#create(Session)}方法的注释中可知：
+     *                该方法同时承担着生成sessionId的任务
      */
     protected void create(Session session) {
         if (log.isDebugEnabled()) {
             log.debug("Creating new EIS record for new session instance [" + session + "]");
         }
+        // 生成SessionId并保存session到指定的EIS(Enterprise Information System，如内存，Cache，数据库等)中
         sessionDAO.create(session);
     }
 
@@ -212,13 +219,23 @@ public class DefaultSessionManager extends AbstractValidatingSessionManager impl
         sessionDAO.update(session);
     }
 
+    /**
+     * 获取Session，这一步骤涉及到两个内容：
+     *      1.获取SessionId；SessionId的获取取决于运行环境，如果是Web环境的话，会尝试从Request请求中的cookie或请求路径中获取；
+     *      2.使用SessionDAO根据SessionId获取Session；
+     * @param sessionKey
+     * @return
+     * @throws UnknownSessionException
+     */
     protected Session retrieveSession(SessionKey sessionKey) throws UnknownSessionException {
+        // 获取SessionId，如果是Web环境的话，会调用DefaultWebSessionManager#getSessionId(SessionKey)方法获取
         Serializable sessionId = getSessionId(sessionKey);
         if (sessionId == null) {
             log.debug("Unable to resolve session ID from SessionKey [{}].  Returning null to indicate a " +
                     "session could not be found.", sessionKey);
             return null;
         }
+        // 使用SessionDAO根据SessionId获取Session对象
         Session s = retrieveSessionFromDataSource(sessionId);
         if (s == null) {
             //session ID was provided, meaning one is expected to be found, but we couldn't find one:

@@ -337,6 +337,8 @@ public class DelegatingSubject implements Subject {
 
             log.trace("Starting session for host {}", getHost());
             SessionContext sessionContext = createSessionContext();
+            // 因为SecurityManager接口继承了SessionManager接口，所以这里相当于调用的是SessionManager.start(SessionContext)
+            // 实际调用的是{@link SessionSecurityManager#start(SubjectContext)} 方法
             Session session = this.securityManager.start(sessionContext);
             this.session = decorate(session);
         }

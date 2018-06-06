@@ -491,18 +491,19 @@ public class DefaultSecurityManager extends SessionsSecurityManager {
      */
     @SuppressWarnings({"unchecked"})
     protected SubjectContext resolvePrincipals(SubjectContext context) {
-
+        // 从SubjectContext中解析PrincipalCollection对象，查找过程见方法注释
         PrincipalCollection principals = context.resolvePrincipals();
 
         if (isEmpty(principals)) {
             log.trace("No identity (PrincipalCollection) found in the context.  Looking for a remembered identity.");
-
+            // 如果通过SubjectContext中无法获取到PrincipalCollection的话，通过RememberMeManager来获取（前提是启用了rememberMe）
             principals = getRememberedIdentity(context);
 
             if (!isEmpty(principals)) {
                 log.debug("Found remembered PrincipalCollection.  Adding to the context to be used " +
                         "for subject construction by the SubjectFactory.");
-
+                // 如果是通过rememberMe获取到的PrincipalCollection，需要将其保存到SubjectContext中，因为后边会根据该SubjectContext
+                // 来创建Subject对象，如果可以直接从SubjectContext中获取到PrincipalCollection的话就不需要执行set操作了
                 context.setPrincipals(principals);
 
                 // The following call was removed (commented out) in Shiro 1.2 because it uses the session as an

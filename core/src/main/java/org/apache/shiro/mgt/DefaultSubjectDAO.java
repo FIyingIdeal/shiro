@@ -196,6 +196,7 @@ public class DefaultSubjectDAO implements SubjectDAO {
                 throw new IllegalStateException("Unable to access DelegatingSubject principals property.", e);
             }
         }
+        // 这里会尝试从Subject中获取Principals，不论是刚登陆过创建Subject或是已经登录过再次请求都可以获取到
         if (currentPrincipals == null || currentPrincipals.isEmpty()) {
             currentPrincipals = subject.getPrincipals();
         }
@@ -204,6 +205,7 @@ public class DefaultSubjectDAO implements SubjectDAO {
 
         if (session == null) {
             if (!isEmpty(currentPrincipals)) {
+                // session不存在，currentPrincipals存在的话创建session
                 session = subject.getSession();
                 session.setAttribute(DefaultSubjectContext.PRINCIPALS_SESSION_KEY, currentPrincipals);
             }

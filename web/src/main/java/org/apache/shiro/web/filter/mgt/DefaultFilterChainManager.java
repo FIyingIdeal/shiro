@@ -142,6 +142,9 @@ public class DefaultFilterChainManager implements FilterChainManager {
         //each token is specific to each filter.
         //strip the name and extract any filter-specific config between brackets [ ]
         for (String token : filterTokens) {
+            //将类似于 roles[admin,user] （FilterName[具体的角色]）的配置方式拆分
+            //数组第一个元素为具体的过滤器名（roles为shiro提供的默认过滤器之一）
+            //数组第二个元素为详细的角色/权限名（admin,user为系统自定义的角色）
             String[] nameConfigPair = toNameConfigPair(token);
 
             //now we have the filter name, path and (possibly null) path-specific config.  Let's apply them:

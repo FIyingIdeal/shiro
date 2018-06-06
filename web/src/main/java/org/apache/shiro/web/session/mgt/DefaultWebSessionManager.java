@@ -44,6 +44,9 @@ import java.io.Serializable;
  * Web-application capable {@link org.apache.shiro.session.mgt.SessionManager SessionManager} implementation.
  *
  * @since 0.9
+ *
+ * @commentauthor yanchao
+ * @date          2018-6-5 17:33:51
  */
 public class DefaultWebSessionManager extends DefaultSessionManager implements WebSessionManager {
 
@@ -105,6 +108,17 @@ public class DefaultWebSessionManager extends DefaultSessionManager implements W
         getSessionIdCookie().removeFrom(request, response);
     }
 
+    /**
+     * 尝试从request对象中的Cookies当中获取sessionId
+     * @see this#storeSessionId(Serializable, HttpServletRequest, HttpServletResponse)
+     * 这个方法中通过调用{@link SimpleCookie#saveTo(HttpServletRequest, HttpServletResponse)} 将sessionId写入到Response的
+     * Header中（Set-Cookie）返回给浏览器，浏览器会将其设置到cookie中并在下一次请求发送时自动将sessionId带上
+     * 至于该cookie的key值可以通过自己实例化一个{@link SimpleCookie}来指定其name属性，该name属性就是cookie的key值
+     *
+     * @param request
+     * @param response
+     * @return
+     */
     private String getSessionIdCookieValue(ServletRequest request, ServletResponse response) {
         if (!isSessionIdCookieEnabled()) {
             log.debug("Session ID cookie is disabled - session id will not be acquired from a request cookie.");
@@ -118,18 +132,27 @@ public class DefaultWebSessionManager extends DefaultSessionManager implements W
         return getSessionIdCookie().readValue(httpRequest, WebUtils.toHttp(response));
     }
 
+    /**
+     * 从Request请求对象当中获取sessionId：1.先从cookie中获取；2.如果cookie中没有获取到的话，从URI中获取；
+     * @param request
+     * @param response
+     * @return
+     */
     private Serializable getReferencedSessionId(ServletRequest request, ServletResponse response) {
-
+        // 尝试从请求的cookie当中获取sessionId
         String id = getSessionIdCookieValue(request, response);
         if (id != null) {
             request.setAttribute(ShiroHttpServletRequest.REFERENCED_SESSION_ID_SOURCE,
                     ShiroHttpServletRequest.COOKIE_SESSION_ID_SOURCE);
         } else {
+            // 如果从cookie中没有获取到的话（可能是cookie被禁用），尝试从URI中获取
             //not in a cookie, or cookie is disabled - try the request URI as a fallback (i.e. due to URL rewriting):
 
+            // 从URL中查找名称为JSESSIONID对应的值
             //try the URI path segment parameters first:
             id = getUriPathSegmentParamValue(request, ShiroHttpSession.DEFAULT_SESSION_ID_NAME);
 
+            // 如果没有找到的话，则从请求路径参数中查找session指定名称参数是否存在
             if (id == null) {
                 //not a URI path segment parameter, try the query parameters:
                 String name = getSessionIdName();
@@ -160,6 +183,14 @@ public class DefaultWebSessionManager extends DefaultSessionManager implements W
     //SHIRO-351
     //also see http://cdivilly.wordpress.com/2011/04/22/java-servlets-uri-parameters/
     //since 1.2.2
+
+    /**
+     * 从URI中获取sessionId，从方法调用中可知，URI中参数名默认为JSESSIONID，可通过这是Cookie值指定名称
+     * 一般情况下，如果通过重写URL方式将sessionId添加到URL时的格式是：原请求URL;JSESSIONID=XXXX?原请求参数
+     * @param servletRequest
+     * @param paramName
+     * @return
+     */
     private String getUriPathSegmentParamValue(ServletRequest servletRequest, String paramName) {
 
         if (!(servletRequest instanceof HttpServletRequest)) {
@@ -253,6 +284,7 @@ public class DefaultWebSessionManager extends DefaultSessionManager implements W
         HttpServletRequest request = WebUtils.getHttpRequest(context);
         HttpServletResponse response = WebUtils.getHttpResponse(context);
 
+        // 如果sessionIdCookieEnabled=true，则将sessionId通过Set-Cookie写到response的Header中
         if (isSessionIdCookieEnabled()) {
             Serializable sessionId = session.getId();
             storeSessionId(sessionId, request, response);
@@ -264,6 +296,11 @@ public class DefaultWebSessionManager extends DefaultSessionManager implements W
         request.setAttribute(ShiroHttpServletRequest.REFERENCED_SESSION_IS_NEW, Boolean.TRUE);
     }
 
+    /**
+     * 获取SessionId，先直接调用SessionKey#getSessionId()获取，如果获取不到的话从Request(请求路径或Cookie)中获取
+     * @param key
+     * @return
+     */
     @Override
     public Serializable getSessionId(SessionKey key) {
         Serializable id = super.getSessionId(key);
@@ -275,6 +312,12 @@ public class DefaultWebSessionManager extends DefaultSessionManager implements W
         return id;
     }
 
+    /**
+     * 从Request对象中获取SessionId（Cookie或请求路径）
+     * @param request
+     * @param response
+     * @return
+     */
     protected Serializable getSessionId(ServletRequest request, ServletResponse response) {
         return getReferencedSessionId(request, response);
     }

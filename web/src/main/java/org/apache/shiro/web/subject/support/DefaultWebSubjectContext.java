@@ -76,6 +76,7 @@ public class DefaultWebSubjectContext extends DefaultSubjectContext implements W
         if (request == null) {
             Subject existing = getSubject();
             if (existing instanceof WebSubject) {
+                // 在登录成功后创建Subject的时候，会从之前请求刚来时创建的WebSubject来获取ServletRequest对象
                 request = ((WebSubject) existing).getServletRequest();
             }
         }

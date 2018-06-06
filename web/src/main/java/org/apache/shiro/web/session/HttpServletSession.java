@@ -100,6 +100,9 @@ public class HttpServletSession implements Session {
 
     public void touch() throws InvalidSessionException {
         //just manipulate the session to update the access time:
+        // touch()是用来更新session的access time，即session的最后操作时间
+        // 这个session是包装了Servlet容器的session，所以这里通过调用setAttribute操作来更新最后操作时间
+        // 这个操作除了更新session最后操作时间外没有任何意义，所以设置的值可以直接删除掉
         try {
             httpSession.setAttribute(TOUCH_OBJECT_SESSION_KEY, TOUCH_OBJECT_SESSION_KEY);
             httpSession.removeAttribute(TOUCH_OBJECT_SESSION_KEY);

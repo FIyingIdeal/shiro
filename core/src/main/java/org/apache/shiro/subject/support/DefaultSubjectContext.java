@@ -143,9 +143,13 @@ public class DefaultSubjectContext extends MapContext implements SubjectContext 
     }
 
     public PrincipalCollection resolvePrincipals() {
+        // 1. 查找Map中是否存在key为 DefaultSubjectContext.class.getName() + ".PRINCIPALS" 的记录
         PrincipalCollection principals = getPrincipals();
 
         if (isEmpty(principals)) {
+            // 2. 如果从1中未解析出来PrincipalCollection，则查找Map中是否存在key为DefaultSubjectContext.class.getName() + ".AUTHENTICATION_INFO"
+            //    的记录，如果存在的话，从其对应的value -- 一个AuthenticationInfo对象 中获取PrincipalCollection
+            //  这一操作在刚登录成功新建Subject的时候获取PrincipalCollection时会使用到
             //check to see if they were just authenticated:
             AuthenticationInfo info = getAuthenticationInfo();
             if (info != null) {
@@ -154,6 +158,8 @@ public class DefaultSubjectContext extends MapContext implements SubjectContext 
         }
 
         if (isEmpty(principals)) {
+            // 3. 如果从2中依然没有获取到PrincipalCollection，则继续查找Map中是否存在key为DefaultSubjectContext.class.getName() + ".SUBJECT"
+            //    的记录，如果存在的话，从其对应的value -- 一个Subject对象 中获取PrincipalCollection
             Subject subject = getSubject();
             if (subject != null) {
                 principals = subject.getPrincipals();
@@ -161,6 +167,10 @@ public class DefaultSubjectContext extends MapContext implements SubjectContext 
         }
 
         if (isEmpty(principals)) {
+            // 4. 如果从3中依然没哟获取到PrincipalCollection，则继续查找Map中是否存在key为DefaultSubjectContext.class.getName() + ".SESSION"
+            //    的记录，如果存在的话，从其对应的value -- 一个Session对象 中通过getAttribute(PRINCIPALS_SESSION_KEY)获取PrincipalCollection
+            // 这一步操作对已经登录成功且Session未超时，在此发送请求的时候通过Session来获取当前操作者身份信息有作用，由此可知，对应的
+            // session.setAttribute(PRINCIPALS_SESSION_KEY, XXX)是在登录成功创建Session后进行的
             //try the session:
             Session session = resolveSession();
             if (session != null) {

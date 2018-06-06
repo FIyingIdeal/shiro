@@ -96,9 +96,13 @@ public abstract class AbstractNativeSessionManager extends AbstractSessionManage
     }
 
     public Session start(SessionContext context) {
+        // 获取Shiro自实现的Session对象，如果要使用Servlet容器中的Session的话，需要配置SessionManager为ServletContainerSessionManager
         Session session = createSession(context);
+        // 设置全局的Session超时时间
         applyGlobalSessionTimeout(session);
+        // 如果使用是DefaultWebSessionManager的话，其实现是尝试将sessionId写到Response的Header中（Set-cookie）
         onStart(session, context);
+        // 遍历调用SessionListener#onStart(Session)方法
         notifyStart(session);
         //Don't expose the EIS-tier Session object to the client-tier:
         return createExposedSession(session, context);
